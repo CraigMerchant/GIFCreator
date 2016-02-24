@@ -21,9 +21,9 @@ class GIFCreator: NSObject {
     private var images: [NSURL] = []
     private var imageDestination : CGImageDestinationRef!
     
-    init(imageURLS:[NSURL])
+    init(imageURLs:[NSURL])
     {
-        self.images = imageURLS
+        self.images = imageURLs
     }
     
     func createGIF(destinationURL: NSURL) {
