@@ -18,6 +18,9 @@ class GIFCreator: NSObject {
     // Setting global color map to false will use a lot less memory when finalizing
     var globalColorMap: Bool = false
     
+    var completionHandler:(()->Void)?
+    var progressHandler:((Float)->Void)?
+    
     private var images: [NSURL] = []
     private var imageDestination : CGImageDestinationRef!
     
@@ -27,26 +30,39 @@ class GIFCreator: NSObject {
     }
     
     func createGIF(destinationURL: NSURL) {
-
-        imageDestination = CGImageDestinationCreateWithURL(destinationURL, kUTTypeGIF, Int(images.count), nil)
-        CGImageDestinationSetProperties(imageDestination, gifProperties())
         
-        for (_, imageURL) in images.enumerate()
-        {
-            autoreleasepool({
-                if let path = imageURL.path {
-                    if let img = UIImage(contentsOfFile: path) {
-                        if let cg = img.CGImage {
-                            let delay = 1 / fps
-                            let properties = frameProperties(delay)
-                            CGImageDestinationAddImage(imageDestination, cg, properties)
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0)) {
+        
+            self.imageDestination = CGImageDestinationCreateWithURL(destinationURL, kUTTypeGIF, Int(self.images.count), nil)
+            CGImageDestinationSetProperties(self.imageDestination, self.gifProperties())
+            
+            for (index, imageURL) in self.images.enumerate()
+            {
+                autoreleasepool({
+                    if let path = imageURL.path {
+                        if let img = UIImage(contentsOfFile: path) {
+                            if let cg = img.CGImage {
+                                let delay = 1 / self.fps
+                                let properties = self.frameProperties(delay)
+                                CGImageDestinationAddImage(self.imageDestination, cg, properties)
+                            }
                         }
                     }
+                })
+                
+                let progress: Float = Float(index+1) / Float(self.images.count)
+                
+                dispatch_async(dispatch_get_main_queue()) {
+                    self.progressHandler?(progress)
                 }
-            })
+            }
+            
+            CGImageDestinationFinalize(self.imageDestination)
+            
+            dispatch_async(dispatch_get_main_queue()) {
+                self.completionHandler?()
+            }
         }
-        
-        CGImageDestinationFinalize(imageDestination)
     }
     
     private func frameProperties(frameDelay:NSTimeInterval) -> CFDictionary
