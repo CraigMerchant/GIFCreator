@@ -7,5 +7,16 @@ let frameURL = NSBundle.mainBundle().URLForResource("1", withExtension: "png")
 let images = [frameURL]
 
 gifCreator = GIFCreator(imageURLs: images)
+
+gifCreator.progressHandler = ({
+  (progress : Float) -> Void in
+
+  print("progress \(progress)")
+})
+
+gifCreator.completionHandler = ({
+  print("completed gif")
+})
+
 gifCreator.createGIF(gifURL)
 ```
